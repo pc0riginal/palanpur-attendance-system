@@ -2,10 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Count, Q
+from django.core.paginator import Paginator
+
+from django.views.decorators.http import require_POST
 from datetime import datetime, timedelta
 import csv
+import json
 from .models import Devotee, Sabha, Attendance
 from .forms import DevoteeForm, SabhaForm, AttendanceForm, DevoteeUploadForm
 from .utils import process_excel_file, save_devotees
@@ -72,8 +76,46 @@ def dashboard(request):
 
 @login_required
 def devotee_list(request):
-    devotees = Devotee.objects.all()
-    return render(request, 'attendance/devotee_list.html', {'devotees': devotees})
+    search_query = request.GET.get('search', '')
+    devotees = Devotee.objects.all().order_by('name')
+    
+    if search_query:
+        devotees = devotees.filter(
+            Q(name__icontains=search_query) | 
+            Q(contact_number__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(devotees, 50)  # 50 devotees per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # AJAX response for search
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        devotees_data = [{
+            'id': d.id,
+            'name': d.name,
+            'contact_number': d.contact_number,
+            'sabha_type_display': d.get_sabha_type_display(),
+            'age_group': d.age_group or 'N/A',
+            'join_date': d.join_date.strftime('%Y-%m-%d'),
+            'photo_url': d.photo_url or ''
+        } for d in page_obj]
+        
+        return JsonResponse({
+            'devotees': devotees_data,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'page_number': page_obj.number,
+            'total_pages': paginator.num_pages,
+            'total_count': paginator.count
+        })
+    
+    return render(request, 'attendance/devotee_list.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'total_count': paginator.count
+    })
 
 @login_required
 def devotee_add(request):
@@ -125,7 +167,20 @@ def sabha_add(request):
 @login_required
 def mark_attendance(request, sabha_id):
     sabha = get_object_or_404(Sabha, pk=sabha_id)
-    devotees = Devotee.objects.filter(sabha_type=sabha.sabha_type)
+    search_query = request.GET.get('search', '')
+    devotees = Devotee.objects.filter(sabha_type=sabha.sabha_type).order_by('name')
+    
+    if search_query:
+        devotees = devotees.filter(
+            Q(name__icontains=search_query) | 
+            Q(contact_number__icontains=search_query)
+        )
+    
+    # Pagination for large lists
+    paginator = Paginator(devotees, 100)  # 100 devotees per page for attendance
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    devotees = page_obj
     
     if request.method == 'POST':
         for devotee in devotees:
@@ -150,10 +205,37 @@ def mark_attendance(request, sabha_id):
         att.devotee.id: att for att in Attendance.objects.filter(sabha=sabha)
     }
     
+    # AJAX response for search
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        devotees_data = []
+        for d in devotees:
+            attendance = existing_attendance.get(d.id)
+            devotees_data.append({
+                'id': d.id,
+                'name': d.name,
+                'contact_number': d.contact_number,
+                'sabha_type_display': d.get_sabha_type_display(),
+                'photo_url': d.photo_url or '',
+                'attendance_status': attendance.status if attendance else 'absent',
+                'attendance_notes': attendance.notes if attendance else ''
+            })
+        
+        return JsonResponse({
+            'devotees': devotees_data,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'page_number': page_obj.number,
+            'total_pages': paginator.num_pages,
+            'total_count': paginator.count
+        })
+    
     context = {
         'sabha': sabha,
         'devotees': devotees,
+        'page_obj': page_obj,
         'existing_attendance': existing_attendance,
+        'search_query': search_query,
+        'total_count': paginator.count
     }
     return render(request, 'attendance/mark_attendance.html', context)
 
@@ -287,3 +369,32 @@ def upload_devotees(request):
         form = DevoteeUploadForm()
     
     return render(request, 'attendance/upload_devotees.html', {'form': form})
+
+@login_required
+@require_POST
+def save_individual_attendance(request):
+    try:
+        data = json.loads(request.body)
+        sabha_id = data.get('sabha_id')
+        devotee_id = data.get('devotee_id')
+        status = data.get('status', 'absent')
+        notes = data.get('notes', '')
+        
+        sabha = get_object_or_404(Sabha, pk=sabha_id)
+        devotee = get_object_or_404(Devotee, pk=devotee_id)
+        
+        attendance, created = Attendance.objects.get_or_create(
+            devotee=devotee,
+            sabha=sabha,
+            defaults={'status': status, 'notes': notes}
+        )
+        
+        if not created:
+            attendance.status = status
+            attendance.notes = notes
+            attendance.save()
+        
+        return JsonResponse({'success': True, 'message': 'Attendance saved'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
