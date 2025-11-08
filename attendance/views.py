@@ -32,10 +32,18 @@ def dashboard(request):
     total_devotees = Devotee.objects.count()
     recent_sabhas = Sabha.objects.all()[:5]
     
-    # Attendance stats for last 4 weeks
-    today = datetime.now().date()
-    four_weeks_ago = today - timedelta(weeks=4)
+    # Calculate attendance rate
+    total_attendance_records = Attendance.objects.count()
+    present_records = Attendance.objects.filter(status='present').count()
+    attendance_rate = round((present_records / total_attendance_records * 100) if total_attendance_records > 0 else 0)
     
+    # This week's sabha count
+    today = datetime.now().date()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    this_week_sabhas = Sabha.objects.filter(date__range=[week_start, week_end]).count()
+    
+    # Attendance stats for last 4 weeks
     attendance_stats = []
     for i in range(4):
         week_start = today - timedelta(weeks=i+1)
@@ -57,6 +65,8 @@ def dashboard(request):
         'total_devotees': total_devotees,
         'recent_sabhas': recent_sabhas,
         'attendance_stats': attendance_stats,
+        'attendance_rate': attendance_rate,
+        'this_week_sabhas': this_week_sabhas,
     }
     return render(request, 'attendance/dashboard.html', context)
 
