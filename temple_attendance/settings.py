@@ -7,7 +7,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-k8#m9@x7v2$n4p!q6w8e+
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','https://*.koyeb.app']
 
 # CSRF settings for production
 CSRF_TRUSTED_ORIGINS = [

@@ -7,6 +7,7 @@ from django.db.models import Count, Q
 from django.core.paginator import Paginator
 
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
 import csv
 import json
@@ -16,6 +17,7 @@ from .utils import process_excel_file, save_devotees
 import os
 import tempfile
 
+@csrf_exempt
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
