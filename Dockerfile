@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements-prod.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput --clear
 
 ENV DEBUG=False
 
