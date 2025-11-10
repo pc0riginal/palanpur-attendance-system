@@ -24,6 +24,8 @@ urlpatterns = [
     
     # Upload
     path('upload-devotees/', views.upload_devotees, name='upload_devotees'),
+    path('process-batch/', views.process_devotees_batch, name='process_devotees_batch'),
+    path('cancel-batch/', views.cancel_batch_processing, name='cancel_batch_processing'),
     
     # API
     path('api/save-attendance/', views.save_individual_attendance, name='save_individual_attendance'),

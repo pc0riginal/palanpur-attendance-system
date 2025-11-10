@@ -65,6 +65,8 @@ def dashboard(request):
 @login_required
 def devotee_list(request):
     search_query = request.GET.get('search', '')
+    page = int(request.GET.get('page', 1))
+    per_page = 20
     
     query = {}
     if search_query:
@@ -73,12 +75,20 @@ def devotee_list(request):
             {'contact_number': {'$regex': search_query}}
         ]}
     
-    devotees_raw = devotees_db.find(query, sort=[('name', 1)])
+    total_count = devotees_db.count(query)
+    skip = (page - 1) * per_page
+    
+    devotees_raw = devotees_db.find(query, sort=[('name', 1)], skip=skip, limit=per_page)
     devotees = []
     for devotee in devotees_raw:
         devotee['id'] = str(devotee['_id'])
         devotee['get_sabha_type_display'] = devotee.get('sabha_type', '').title()
         devotees.append(devotee)
+    
+    # Pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    has_previous = page > 1
+    has_next = page < total_pages
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         devotees_data = [{
@@ -91,12 +101,38 @@ def devotee_list(request):
             'photo_url': d.get('photo_url', '')
         } for d in devotees]
         
-        return JsonResponse({'devotees': devotees_data, 'total_count': len(devotees_data)})
+        return JsonResponse({
+            'devotees': devotees_data,
+            'total_count': total_count,
+            'current_page': page,
+            'total_pages': total_pages,
+            'has_previous': has_previous,
+            'has_next': has_next
+        })
+    
+    # Create pagination object for template
+    class PaginationObj:
+        def __init__(self, items, page, total_pages, has_previous, has_next, total_count):
+            self.object_list = items
+            self.number = page
+            self.paginator = type('Paginator', (), {
+                'num_pages': total_pages,
+                'count': total_count
+            })()
+            self.has_previous = lambda: has_previous
+            self.has_next = lambda: has_next
+            self.previous_page_number = lambda: page - 1 if has_previous else None
+            self.next_page_number = lambda: page + 1 if has_next else None
+        
+        def __iter__(self):
+            return iter(self.object_list)
+    
+    page_obj = PaginationObj(devotees, page, total_pages, has_previous, has_next, total_count)
     
     return render(request, 'attendance/devotee_list.html', {
-        'page_obj': devotees,
+        'page_obj': page_obj,
         'search_query': search_query,
-        'total_count': len(devotees)
+        'total_count': total_count
     })
 
 @login_required
@@ -382,8 +418,22 @@ def upload_devotees(request):
     from .utils import process_excel_file
     import tempfile
     import os
+    import gc
     
     if request.method == 'POST':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return process_devotees_batch(request)
+        
+        # Check if upload is already in progress
+        if 'upload_data' in request.session:
+            messages.warning(request, 'Upload already in progress. Please wait for completion.')
+            context = {
+                'form': DevoteeUploadForm(),
+                'show_progress': True,
+                'total_records': request.session.get('total_records', 0)
+            }
+            return render(request, 'attendance/upload_devotees.html', context)
+        
         form = DevoteeUploadForm(request.POST, request.FILES)
         if form.is_valid():
             excel_file = form.cleaned_data['excel_file']
@@ -414,33 +464,132 @@ def upload_devotees(request):
                     }
                     return render(request, 'attendance/upload_devotees.html', context)
                 
-                # Save to MongoDB
-                created_count = 0
-                updated_count = 0
+                # Convert dates to strings for JSON serialization
                 for row in valid_rows:
-                    # Convert date to string
                     if 'join_date' in row and hasattr(row['join_date'], 'isoformat'):
                         row['join_date'] = row['join_date'].isoformat()
-                    
-                    existing = devotees_db.find_one({'contact_number': row['contact_number']})
-                    if existing:
-                        devotees_db.update_one({'_id': existing['_id']}, row)
-                        updated_count += 1
-                    else:
-                        row['created_at'] = datetime.now().isoformat()
-                        devotees_db.insert_one(row)
-                        created_count += 1
                 
-                messages.success(request, f'Successfully imported {created_count} new devotees and updated {updated_count} existing devotees!')
-                return redirect('devotee_list')
+                request.session['upload_data'] = valid_rows
+                request.session['total_records'] = len(valid_rows)
+                request.session['current_batch'] = 0
+                request.session['total_created'] = 0
+                request.session['total_updated'] = 0
                 
+                context = {
+                    'form': form,
+                    'show_progress': True,
+                    'total_records': len(valid_rows)
+                }
+                return render(request, 'attendance/upload_devotees.html', context)
+                
+            except Exception as e:
+                messages.error(request, f'Error during import: {str(e)}')
+                return render(request, 'attendance/upload_devotees.html', {'form': form})
             finally:
                 if os.path.exists(tmp_file_path):
                     os.unlink(tmp_file_path)
+                gc.collect()
     else:
+        # Check if upload is in progress on GET request
+        if 'upload_data' in request.session:
+            context = {
+                'form': DevoteeUploadForm(),
+                'show_progress': True,
+                'total_records': request.session.get('total_records', 0)
+            }
+            return render(request, 'attendance/upload_devotees.html', context)
+        
         form = DevoteeUploadForm()
     
     return render(request, 'attendance/upload_devotees.html', {'form': form})
+
+@login_required
+def cancel_batch_processing(request):
+    # Clear all batch processing session data
+    keys_to_remove = ['upload_data', 'total_records', 'current_batch', 'total_created', 'total_updated']
+    for key in keys_to_remove:
+        if key in request.session:
+            del request.session[key]
+    return JsonResponse({'success': True})
+
+@login_required
+def process_devotees_batch(request):
+    if 'upload_data' not in request.session:
+        return JsonResponse({'error': 'No upload data found'})
+    
+    batch_size = 50
+    current_batch = request.session.get('current_batch', 0)
+    
+    valid_rows = request.session['upload_data']
+    total_records = len(valid_rows)
+    
+    start_idx = current_batch * batch_size
+    end_idx = min(start_idx + batch_size, total_records)
+    
+    if start_idx >= total_records:
+        # Already completed
+        return JsonResponse({
+            'processed': total_records,
+            'total': total_records,
+            'created': request.session.get('total_created', 0),
+            'updated': request.session.get('total_updated', 0),
+            'complete': True,
+            'percentage': 100
+        })
+    
+    batch = valid_rows[start_idx:end_idx]
+    
+    created_count = 0
+    updated_count = 0
+    
+    for row in batch:
+        try:
+            # Clean row data - remove any ObjectId instances
+            clean_row = {}
+            for k, v in row.items():
+                if isinstance(v, ObjectId):
+                    clean_row[k] = str(v)
+                elif hasattr(v, 'isoformat'):
+                    clean_row[k] = v.isoformat()
+                else:
+                    clean_row[k] = v
+            
+            existing = devotees_db.find_one({'contact_number': clean_row['contact_number']})
+            if existing:
+                update_data = {k: v for k, v in clean_row.items() if k != '_id'}
+                update_data['updated_at'] = datetime.now().isoformat()
+                devotees_db.update_one({'_id': existing['_id']}, update_data)
+                updated_count += 1
+            else:
+                clean_row['created_at'] = datetime.now().isoformat()
+                devotees_db.insert_one(clean_row)
+                created_count += 1
+        except Exception as e:
+            print(f"Error processing row: {e}")
+            continue
+    
+    # Update session counters
+    request.session['current_batch'] = current_batch + 1
+    request.session['total_created'] = request.session.get('total_created', 0) + created_count
+    request.session['total_updated'] = request.session.get('total_updated', 0) + updated_count
+    
+    processed = end_idx
+    is_complete = processed >= total_records
+    
+    if is_complete:
+        # Clean up session data
+        for key in ['upload_data', 'total_records', 'current_batch', 'total_created', 'total_updated']:
+            request.session.pop(key, None)
+    
+    return JsonResponse({
+        'processed': processed,
+        'total': total_records,
+        'created': request.session.get('total_created', 0),
+        'updated': request.session.get('total_updated', 0),
+        'complete': is_complete,
+        'percentage': round((processed / total_records) * 100),
+        'current_batch': current_batch + 1
+    })
 
 @login_required
 @require_POST
