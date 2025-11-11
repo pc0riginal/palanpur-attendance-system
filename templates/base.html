@@ -197,22 +197,39 @@
             bottom: 0;
             left: 0;
             right: 0;
+            width: 100%;
             background: white;
             border-top: 1px solid rgba(17, 20, 57, 0.1);
             z-index: 1000;
             padding: 8px 0;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
         .bottom-tab {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 8px 4px;
+            padding: 6px 1px;
             text-decoration: none;
             color: #6c757d;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 500;
             transition: all 0.3s ease;
+            min-width: 0;
+            flex: 1 1 20%;
+            max-width: 20%;
+        }
+        .bottom-tab span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+        .bottom-tab-bar .d-flex {
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
         .bottom-tab:hover, .bottom-tab.active {
             color: #6C63FF;
@@ -233,6 +250,8 @@
             .navbar { position: static !important; }
             body { padding-bottom: 100px; }
             .container-fluid { padding-bottom: 20px; }
+            .container { padding-bottom: 20px; }
+            .hero-bg { margin-bottom: 20px !important; }
             .tab-content { margin-bottom: 20px; }
             .card:last-child { margin-bottom: 20px; }
         }
@@ -286,37 +305,27 @@
     <!-- Bottom Tab Bar for Mobile -->
     {% if user.is_authenticated %}
     <div class="bottom-tab-bar d-md-none">
-        <div class="row g-0">
-            <div class="col">
-                <a href="{% url 'dashboard' %}" class="bottom-tab{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}">
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span>
-                </a>
-            </div>
-            <div class="col">
-                <a href="{% url 'devotee_list' %}" class="bottom-tab{% if 'devotee' in request.resolver_match.url_name %} active{% endif %}">
-                    <i class="bi bi-people"></i>
-                    <span>Devotees</span>
-                </a>
-            </div>
-            <div class="col">
-                <a href="{% url 'sabha_list' %}" class="bottom-tab{% if 'sabha' in request.resolver_match.url_name %} active{% endif %}">
-                    <i class="bi bi-calendar-event"></i>
-                    <span>Sabhas</span>
-                </a>
-            </div>
-            <div class="col">
-                <a href="{% url 'upload_devotees' %}" class="bottom-tab{% if 'upload' in request.resolver_match.url_name %} active{% endif %}">
-                    <i class="bi bi-cloud-upload"></i>
-                    <span>Upload</span>
-                </a>
-            </div>
-            <div class="col">
-                <a href="{% url 'attendance_report' %}" class="bottom-tab{% if 'report' in request.resolver_match.url_name %} active{% endif %}">
-                    <i class="bi bi-graph-up"></i>
-                    <span>Reports</span>
-                </a>
-            </div>
+        <div class="d-flex">
+            <a href="{% url 'dashboard' %}" class="bottom-tab{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Home</span>
+            </a>
+            <a href="{% url 'devotee_list' %}" class="bottom-tab{% if 'devotee' in request.resolver_match.url_name %} active{% endif %}">
+                <i class="bi bi-people"></i>
+                <span>Devotees</span>
+            </a>
+            <a href="{% url 'sabha_list' %}" class="bottom-tab{% if 'sabha' in request.resolver_match.url_name %} active{% endif %}">
+                <i class="bi bi-calendar-event"></i>
+                <span>Sabhas</span>
+            </a>
+            <a href="{% url 'upload_devotees' %}" class="bottom-tab{% if 'upload' in request.resolver_match.url_name %} active{% endif %}">
+                <i class="bi bi-cloud-upload"></i>
+                <span>Upload</span>
+            </a>
+            <a href="{% url 'attendance_report' %}" class="bottom-tab{% if 'report' in request.resolver_match.url_name %} active{% endif %}">
+                <i class="bi bi-graph-up"></i>
+                <span>Reports</span>
+            </a>
         </div>
     </div>
     {% endif %}
