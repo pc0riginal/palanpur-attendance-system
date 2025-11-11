@@ -185,10 +185,50 @@
         h1, h2, h3, h4, h5, h6 { font-weight: 700; color: var(--dark-blue); }
         .display-1 { font-size: 3.5rem; font-weight: 800; }
         
+        /* Bottom Tab Bar for Mobile */
+        .bottom-tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid rgba(17, 20, 57, 0.1);
+            z-index: 1000;
+            padding: 8px 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .bottom-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            text-decoration: none;
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .bottom-tab:hover, .bottom-tab.active {
+            color: #6C63FF;
+            text-decoration: none;
+        }
+        .bottom-tab i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        
         @media (max-width: 768px) {
             .btn-temple { padding: 14px 24px; min-height: 52px; }
             .card-body { padding: 20px; }
             .display-1 { font-size: 2.5rem; }
+            .navbar-collapse { display: none !important; }
+            .navbar-toggler { display: none !important; }
+            .navbar-brand span { display: inline !important; }
+            body { padding-bottom: 80px; }
+        }
+        
+        @media (min-width: 769px) {
+            .bottom-tab-bar { display: none; }
         }
     </style>
 </head>
@@ -198,7 +238,7 @@
             <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
                 {% load static %}
                 <img src="{% static 'images/logo.png' %}" alt="Temple Logo" class="temple-logo me-2" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
-                <i class="bi bi-flower1" style="display: none;"></i>
+                <i class="bi bi-flower1 me-2" style="display: none;"></i>
                 <span class="d-none d-sm-inline">BAPS Temple Attendance</span>
             </a>
             {% if user.is_authenticated %}
@@ -232,6 +272,44 @@
         {% block content %}
         {% endblock %}
     </div>
+
+    <!-- Bottom Tab Bar for Mobile -->
+    {% if user.is_authenticated %}
+    <div class="bottom-tab-bar d-md-none">
+        <div class="row g-0">
+            <div class="col">
+                <a href="{% url 'dashboard' %}" class="bottom-tab{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            <div class="col">
+                <a href="{% url 'devotee_list' %}" class="bottom-tab{% if 'devotee' in request.resolver_match.url_name %} active{% endif %}">
+                    <i class="bi bi-people"></i>
+                    <span>Devotees</span>
+                </a>
+            </div>
+            <div class="col">
+                <a href="{% url 'sabha_list' %}" class="bottom-tab{% if 'sabha' in request.resolver_match.url_name %} active{% endif %}">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>Sabhas</span>
+                </a>
+            </div>
+            <div class="col">
+                <a href="{% url 'upload_devotees' %}" class="bottom-tab{% if 'upload' in request.resolver_match.url_name %} active{% endif %}">
+                    <i class="bi bi-cloud-upload"></i>
+                    <span>Upload</span>
+                </a>
+            </div>
+            <div class="col">
+                <a href="{% url 'attendance_report' %}" class="bottom-tab{% if 'report' in request.resolver_match.url_name %} active{% endif %}">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Reports</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>

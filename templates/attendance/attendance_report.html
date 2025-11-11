@@ -5,9 +5,6 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4><i class="fas fa-chart-line"></i> <span class="d-none d-sm-inline">Reports & Analytics</span></h4>
-    <a href="{% url 'export_attendance' %}{% if filters.sabha_type or filters.date_from or filters.date_to %}?{% if filters.sabha_type %}sabha_type={{ filters.sabha_type }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% endif %}" class="btn btn-temple btn-sm">
-        <i class="bi bi-download"></i> Export
-    </a>
 </div>
 
 <!-- Tabs -->
@@ -64,6 +61,12 @@
 
 <!-- Report Tab -->
 <div class="tab-pane fade" id="report" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5><i class="bi bi-table"></i> Attendance Report</h5>
+        <a href="{% url 'export_attendance' %}{% if filters.sabha_type or filters.date_from or filters.date_to %}?{% if filters.sabha_type %}sabha_type={{ filters.sabha_type }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% endif %}" class="btn btn-temple btn-sm">
+            <i class="bi bi-download me-2"></i> Export
+        </a>
+    </div>
     <div class="card mb-4">
         <div class="card-header">
             <h5><i class="fas fa-filter"></i> Filters</h5>
@@ -120,7 +123,11 @@
 
     {% if filters.status %}
     <div class="mb-3">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search devotees by name..." value="{{ search_query }}">
+        <input type="text" id="reportSearchInput" class="form-control" placeholder="Search devotees by name..." value="{{ search_query }}">
+        <div id="reportSearchLoading" class="text-center mt-2" style="display: none;">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <span class="ms-2">Searching...</span>
+        </div>
     </div>
     {% endif %}
 
@@ -223,40 +230,122 @@
 </div>
 
 <script>
-let searchTimeout;
-document.getElementById('searchInput')?.addEventListener('input', function() {
-    const searchTerm = this.value;
-    const loading = document.getElementById('searchLoading');
+let reportSearchTimeout;
+document.addEventListener('DOMContentLoaded', function() {
+    // Re-attach search listener when tab is shown
+    document.getElementById('report-tab')?.addEventListener('shown.bs.tab', function() {
+        attachReportSearch();
+    });
     
-    clearTimeout(searchTimeout);
+    // Initial attachment
+    attachReportSearch();
+});
+
+function attachReportSearch() {
+    const reportSearchInput = document.getElementById('reportSearchInput');
+    if (reportSearchInput) {
+        reportSearchInput.removeEventListener('input', handleReportSearch);
+        reportSearchInput.addEventListener('input', handleReportSearch);
+    }
+}
+
+function handleReportSearch() {
+    const searchTerm = this.value;
+    const loading = document.getElementById('reportSearchLoading');
+    
+    clearTimeout(reportSearchTimeout);
     if (loading) loading.style.display = 'block';
     
-    searchTimeout = setTimeout(() => {
-        const url = new URL(window.location);
-        url.searchParams.set('tab', 'report');
-        if (searchTerm) {
-            url.searchParams.set('search', searchTerm);
-        } else {
-            url.searchParams.delete('search');
-        }
-        url.searchParams.delete('page');
-        
-        fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            updateReportList(data);
-            updateReportPagination(data);
-            if (loading) loading.style.display = 'none';
-        })
-        .catch(() => {
-            if (loading) loading.style.display = 'none';
-        });
+    reportSearchTimeout = setTimeout(() => {
+                // Only search if a status is selected
+                const currentUrl = new URL(window.location);
+                if (!currentUrl.searchParams.get('status')) {
+                    if (loading) loading.style.display = 'none';
+                    return;
+                }
+                
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'report');
+                if (searchTerm) {
+                    url.searchParams.set('search', searchTerm);
+                } else {
+                    url.searchParams.delete('search');
+                }
+                url.searchParams.delete('page');
+                
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Search data:', data); // Debug log
+                    if (data.records !== undefined) {
+                        // Update the report content directly
+                        const mobileContainer = document.querySelector('#report .d-block.d-md-none');
+                        const desktopContainer = document.querySelector('#report .d-none.d-md-block tbody');
+                        
+                        if (mobileContainer) {
+                            mobileContainer.innerHTML = '';
+                            data.records.forEach(record => {
+                                const statusClass = record.status === 'present' ? 'bg-success' : record.status === 'late' ? 'bg-warning' : 'bg-danger';
+                                const statusIcon = record.status === 'present' ? 'bi-check-circle' : record.status === 'late' ? 'bi-clock' : 'bi-x-circle';
+                                
+                                const card = document.createElement('div');
+                                card.className = 'card mb-2';
+                                card.innerHTML = `
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">${record.devotee_name}</h6>
+                                                <small class="text-muted d-block">${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</small>
+                                                <small class="text-muted d-block">${record.sabha_date}</small>
+                                                ${record.notes ? `<small class="text-muted">${record.notes}</small>` : ''}
+                                            </div>
+                                            <span class="badge ${statusClass} px-3 py-2">
+                                                <i class="bi ${statusIcon} me-1"></i>
+                                                ${record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `;
+                                mobileContainer.appendChild(card);
+                            });
+                        }
+                        
+                        if (desktopContainer) {
+                            desktopContainer.innerHTML = '';
+                            data.records.forEach(record => {
+                                const statusClass = record.status === 'present' ? 'bg-success' : record.status === 'late' ? 'bg-warning' : 'bg-danger';
+                                const statusIcon = record.status === 'present' ? 'bi-check-circle' : record.status === 'late' ? 'bi-clock' : 'bi-x-circle';
+                                
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${record.devotee_name}</td>
+                                    <td>${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</td>
+                                    <td>${record.sabha_date}</td>
+                                    <td>
+                                        <span class="badge ${statusClass} px-3 py-2">
+                                            <i class="bi ${statusIcon} me-1"></i>
+                                            ${record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                        </span>
+                                    </td>
+                                    <td>${record.notes || '-'}</td>
+                                `;
+                                desktopContainer.appendChild(row);
+                            });
+                        }
+                        
+                        updateReportPagination(data);
+                    }
+                    if (loading) loading.style.display = 'none';
+                })
+                .catch(() => {
+                    if (loading) loading.style.display = 'none';
+                });
     }, 300);
-});
+}
 
 function updateReportList(data) {
     const mobileContainer = document.querySelector('#report .d-block.d-md-none');
@@ -559,11 +648,71 @@ document.getElementById('filterForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     const params = new URLSearchParams(formData);
+    params.set('tab', 'report');
     params.delete('status'); // Clear status filter when applying date/sabha filters
+    
+    // Update URL without reload
     window.history.pushState({}, '', '?' + params.toString());
-    loadCharts();
-    location.reload();
+    
+    // Fetch filtered data
+    fetch(window.location.href, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update status button counts
+        updateStatusButtons(data);
+        // Clear current report data
+        clearReportData();
+        loadCharts();
+    })
+    .catch(() => {
+        location.reload(); // Fallback to reload on error
+    });
 });
+
+function updateStatusButtons(data) {
+    const presentBtn = document.querySelector('a[href*="status=present"]');
+    const absentBtn = document.querySelector('a[href*="status=absent"]');
+    const lateBtn = document.querySelector('a[href*="status=late"]');
+    
+    if (presentBtn) presentBtn.innerHTML = `<i class="bi bi-check-circle"></i> Present (${data.present_count})`;
+    if (absentBtn) absentBtn.innerHTML = `<i class="bi bi-x-circle"></i> Absent (${data.absent_count})`;
+    if (lateBtn) lateBtn.innerHTML = `<i class="bi bi-clock"></i> Late (${data.late_count})`;
+    
+    // Update button URLs with new filters
+    const baseParams = new URLSearchParams(window.location.search);
+    baseParams.delete('status');
+    baseParams.delete('page');
+    
+    if (presentBtn) {
+        const presentParams = new URLSearchParams(baseParams);
+        presentParams.set('status', 'present');
+        presentBtn.href = '?' + presentParams.toString();
+    }
+    if (absentBtn) {
+        const absentParams = new URLSearchParams(baseParams);
+        absentParams.set('status', 'absent');
+        absentBtn.href = '?' + absentParams.toString();
+    }
+    if (lateBtn) {
+        const lateParams = new URLSearchParams(baseParams);
+        lateParams.set('status', 'late');
+        lateBtn.href = '?' + lateParams.toString();
+    }
+}
+
+function clearReportData() {
+    const mobileContainer = document.querySelector('#report .d-block.d-md-none');
+    const desktopContainer = document.querySelector('#report .d-none.d-md-block tbody');
+    const paginationNav = document.querySelector('#report nav');
+    
+    if (mobileContainer) mobileContainer.innerHTML = '<div class="text-center py-4"><p class="text-muted">Select a status to view records</p></div>';
+    if (desktopContainer) desktopContainer.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Select a status to view records</td></tr>';
+    if (paginationNav) paginationNav.style.display = 'none';
+}
 
 // Handle tab switching
 document.addEventListener('DOMContentLoaded', function() {

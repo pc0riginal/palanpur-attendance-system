@@ -491,14 +491,33 @@ def attendance_report(request):
     attendance_list = list(attendance_records)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Convert ObjectId to string for JSON serialization
+        serializable_records = []
+        for record in attendance_list:
+            clean_record = {}
+            for key, value in record.items():
+                if isinstance(value, ObjectId):
+                    clean_record[key] = str(value)
+                else:
+                    clean_record[key] = value
+            serializable_records.append(clean_record)
+        
         return JsonResponse({
-            'records': attendance_list,
+            'records': serializable_records,
             'total_count': total_count,
             'current_page': page,
             'total_pages': total_pages,
             'has_previous': has_previous,
-            'has_next': has_next
+            'has_next': has_next,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'late_count': late_count
         })
+    
+    # Convert ObjectId to string for template rendering
+    for record in attendance_list:
+        if '_id' in record:
+            record['_id'] = str(record['_id'])
     
     page_obj = PaginationObj(attendance_list, page, total_pages, has_previous, has_next, total_count)
     
