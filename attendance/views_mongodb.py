@@ -183,6 +183,10 @@ def devotee_add(request):
         
         result = devotees_db.insert_one(devotee_data)
         
+        if result is None:
+            messages.error(request, 'Database connection error. Please try again.')
+            return render(request, 'attendance/devotee_form.html', {'title': 'Add Devotee', 'today': datetime.now().date().isoformat()})
+        
         messages.success(request, 'Devotee added successfully!')
         return redirect('devotee_list')
     
@@ -251,7 +255,12 @@ def devotee_edit(request, pk):
                 update_data['photo_url'] = photo_url
         
         update_result = devotees_db.update_one({'_id': ObjectId(pk)}, update_data)
-        print(f"Database update result: {update_result.modified_count} documents modified")
+        
+        if update_result is None:
+            messages.error(request, 'Database connection error. Please try again.')
+            return render(request, 'attendance/devotee_form.html', {'devotee': devotee, 'title': 'Edit Devotee', 'today': datetime.now().date().isoformat()})
+        
+        print(f"Database update result: {update_result.modified_count if update_result else 0} documents modified")
         print(f"Final photo_url in update_data: {update_data.get('photo_url')}")
         
         messages.success(request, 'Devotee updated successfully!')

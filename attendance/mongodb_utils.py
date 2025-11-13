@@ -12,6 +12,7 @@ def get_mongodb():
     
     if _mongodb is None:
         try:
+            print(f"Connecting to MongoDB: {settings.MONGODB_NAME}")
             # Add connection timeout and retry settings
             _mongo_client = MongoClient(
                 settings.MONGODB_URI,
@@ -23,9 +24,17 @@ def get_mongodb():
             )
             _mongodb = _mongo_client[settings.MONGODB_NAME]
             # Test connection
-            _mongo_client.server_info()
+            server_info = _mongo_client.server_info()
+            print(f"MongoDB connected successfully. Server version: {server_info.get('version')}")
+            
+            # Test database access
+            collections = _mongodb.list_collection_names()
+            print(f"Available collections: {collections}")
+            
         except Exception as e:
             print(f"MongoDB connection error: {e}")
+            import traceback
+            traceback.print_exc()
             _mongodb = None
     
     return _mongodb
@@ -34,6 +43,7 @@ class MongoDBManager:
     """Manager class for MongoDB operations"""
     
     def __init__(self, collection_name):
+        self.collection_name = collection_name
         self.db = get_mongodb()
         self.collection = self.db[collection_name] if self.db is not None else None
         self._ensure_indexes(collection_name)
@@ -42,14 +52,23 @@ class MongoDBManager:
         """Ensure MongoDB connection is healthy"""
         if self.db is None:
             self.db = get_mongodb()
-            self.collection = self.db[self.collection.name] if self.db is not None else None
+            if self.db is not None and hasattr(self, 'collection_name'):
+                self.collection = self.db[self.collection_name]
+            else:
+                self.collection = None
         return self.collection is not None
     
     def insert_one(self, document):
         """Insert a single document"""
         if self._ensure_connection():
-            return self.collection.insert_one(document)
-        return None
+            try:
+                return self.collection.insert_one(document)
+            except Exception as e:
+                print(f"Error inserting document into {self.collection_name}: {e}")
+                return None
+        else:
+            print(f"No connection available for {self.collection_name}")
+            return None
     
     def insert_many(self, documents):
         """Insert multiple documents"""
@@ -65,15 +84,22 @@ class MongoDBManager:
     
     def find(self, query=None, sort=None, limit=None, skip=None):
         """Find multiple documents"""
-        if self.collection is not None:
-            cursor = self.collection.find(query or {})
-            if sort:
-                cursor = cursor.sort(sort)
-            if skip:
-                cursor = cursor.skip(skip)
-            if limit:
-                cursor = cursor.limit(limit)
-            return list(cursor)
+        if self._ensure_connection():
+            try:
+                cursor = self.collection.find(query or {})
+                if sort:
+                    cursor = cursor.sort(sort)
+                if skip:
+                    cursor = cursor.skip(skip)
+                if limit:
+                    cursor = cursor.limit(limit)
+                result = list(cursor)
+                print(f"Found {len(result)} documents in {self.collection.name}")
+                return result
+            except Exception as e:
+                print(f"Error finding documents in {self.collection.name}: {e}")
+                return []
+        print(f"No connection to {self.collection.name if self.collection else 'unknown collection'}")
         return []
     
     def update_one(self, query, update):
@@ -111,8 +137,14 @@ class MongoDBManager:
     
     def count(self, query=None):
         """Count documents"""
-        if self.collection is not None:
-            return self.collection.count_documents(query or {})
+        if self._ensure_connection():
+            try:
+                count = self.collection.count_documents(query or {})
+                print(f"Count in {self.collection.name}: {count}")
+                return count
+            except Exception as e:
+                print(f"Error counting documents in {self.collection.name}: {e}")
+                return 0
         return 0
     
     def _ensure_indexes(self, collection_name):

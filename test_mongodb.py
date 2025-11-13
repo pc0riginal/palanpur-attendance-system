@@ -1,41 +1,44 @@
+#!/usr/bin/env python
 import os
+import sys
 import django
 
+# Add the project directory to Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'temple_attendance.settings')
 django.setup()
 
-from django.conf import settings
-from attendance.mongodb_utils import MongoDBManager, get_mongodb
+from attendance.mongodb_utils import MongoDBManager
 
-print("Testing MongoDB Connection...")
-print(f"MongoDB URI: {settings.MONGODB_URI}")
-print(f"Database Name: {settings.MONGODB_NAME}")
+def test_mongodb_connection():
+    """Test MongoDB connection and data retrieval"""
+    print("Testing MongoDB connection...")
+    
+    # Test devotees collection
+    devotees_db = MongoDBManager('devotees')
+    devotee_count = devotees_db.count()
+    print(f"Total devotees in database: {devotee_count}")
+    
+    if devotee_count > 0:
+        # Get first few devotees
+        devotees = devotees_db.find(limit=3)
+        print("Sample devotees:")
+        for devotee in devotees:
+            print(f"  - {devotee.get('name', 'Unknown')} ({devotee.get('contact_number', 'No phone')})")
+    
+    # Test sabhas collection
+    sabhas_db = MongoDBManager('sabhas')
+    sabha_count = sabhas_db.count()
+    print(f"Total sabhas in database: {sabha_count}")
+    
+    # Test attendance collection
+    attendance_db = MongoDBManager('attendance_records')
+    attendance_count = attendance_db.count()
+    print(f"Total attendance records in database: {attendance_count}")
+    
+    print("MongoDB test completed.")
 
-mongodb = get_mongodb()
-
-if mongodb is not None:
-    print("[OK] MongoDB connected successfully!")
-    
-    # Test collections
-    collections = mongodb.list_collection_names()
-    print(f"\nExisting collections: {collections}")
-    
-    # Test insert
-    test_manager = MongoDBManager('test_collection')
-    result = test_manager.insert_one({'test': 'data', 'message': 'MongoDB Atlas connection test'})
-    
-    if result:
-        print("\n[OK] Test document inserted successfully!")
-        print(f"Inserted ID: {result.inserted_id}")
-        
-        # Test find
-        doc = test_manager.find_one({'test': 'data'})
-        print(f"[OK] Test document retrieved: {doc}")
-        
-        # Clean up
-        test_manager.delete_one({'test': 'data'})
-        print("[OK] Test document deleted")
-    
-    print("\n[SUCCESS] MongoDB is working correctly!")
-else:
-    print("[ERROR] MongoDB connection failed!")
+if __name__ == "__main__":
+    test_mongodb_connection()
