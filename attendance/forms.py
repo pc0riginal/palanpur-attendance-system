@@ -1,6 +1,46 @@
 from django import forms
 from .models import Devotee, Sabha, Attendance
 
+class DevoteeMongoForm(forms.Form):
+    SABHA_CHOICES = [
+        ('bal', 'Bal Sabha'),
+        ('yuvak', 'Yuvak Sabha'),
+        ('mahila', 'Mahila Sabha'),
+        ('sanyukt', 'Sanyukt Sabha'),
+    ]
+    
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+    ]
+    
+    DEVOTEE_TYPE_CHOICES = [
+        ('haribhakt', 'Haribhakt'),
+        ('gunbhavi', 'Gunbhavi'),
+        ('karyakar', 'Karyakar'),
+    ]
+    
+    devotee_id = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if empty'}))
+    devotee_type = forms.ChoiceField(choices=DEVOTEE_TYPE_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    contact_number = forms.CharField(max_length=15, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    date_of_birth = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    gender = forms.ChoiceField(choices=GENDER_CHOICES, required=False, widget=forms.Select(attrs={'class': 'form-control'}))
+    age = forms.IntegerField(required=False, widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': True}))
+    sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    address_line = forms.CharField(max_length=200, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    landmark = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    zone = forms.CharField(max_length=50, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    join_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    photo = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*',
+            'capture': 'camera'
+        })
+    )
+
 class DevoteeForm(forms.ModelForm):
     photo = forms.ImageField(
         required=False,
