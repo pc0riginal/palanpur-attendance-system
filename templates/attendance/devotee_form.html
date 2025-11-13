@@ -15,6 +15,25 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label class="form-label">Devotee ID</label>
+                                <input type="text" name="devotee_id" class="form-control" value="{{ devotee.devotee_id|default:'' }}" placeholder="Auto-generated if empty">
+                                <div class="form-text">Leave empty for auto-generation</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Devotee Type</label>
+                                <select name="devotee_type" class="form-select" required>
+                                    <option value="haribhakt" {% if devotee.devotee_type == 'haribhakt' %}selected{% endif %}>Haribhakt</option>
+                                    <option value="gunbhavi" {% if devotee.devotee_type == 'gunbhavi' %}selected{% endif %}>Gunbhavi</option>
+                                    <option value="karyakar" {% if devotee.devotee_type == 'karyakar' %}selected{% endif %}>Karyakar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label class="form-label">Name</label>
                                 <input type="text" name="name" class="form-control" value="{{ devotee.name|default:'' }}" required minlength="2" maxlength="100" pattern="[A-Za-z\s]+" title="Name should only contain letters and spaces">
                             </div>

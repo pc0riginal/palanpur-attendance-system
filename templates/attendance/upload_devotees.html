@@ -92,6 +92,12 @@
                             </thead>
                             <tbody>
                                 <tr>
+                                    <td><code>devotee_id</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>Unique devotee identifier (integer number)</td>
+                                    <td>1</td>
+                                </tr>
+                                <tr>
                                     <td><code>name</code></td>
                                     <td><span class="badge badge-absent">Required</span></td>
                                     <td>Full name of devotee</td>
@@ -110,22 +116,46 @@
                                     <td>yuvak</td>
                                 </tr>
                                 <tr>
-                                    <td><code>photo_url</code></td>
+                                    <td><code>devotee_type</code></td>
                                     <td><span class="badge badge-absent">Required</span></td>
-                                    <td>Google Drive or image URL</td>
-                                    <td>https://drive.google.com/...</td>
+                                    <td>haribhakt, gunbhavi, or karyakar</td>
+                                    <td>haribhakt</td>
                                 </tr>
                                 <tr>
-                                    <td><code>age_group</code></td>
-                                    <td><span class="badge bg-secondary">Optional</span></td>
-                                    <td>Age range</td>
-                                    <td>25-35</td>
+                                    <td><code>date_of_birth</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>Date in YYYY-MM-DD format</td>
+                                    <td>1990-05-15</td>
                                 </tr>
                                 <tr>
-                                    <td><code>address</code></td>
+                                    <td><code>gender</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>male or female</td>
+                                    <td>male</td>
+                                </tr>
+                                <tr>
+                                    <td><code>age</code></td>
                                     <td><span class="badge bg-secondary">Optional</span></td>
-                                    <td>Full address</td>
+                                    <td>Age (auto-calculated from DOB)</td>
+                                    <td>34</td>
+                                </tr>
+                                <tr>
+                                    <td><code>address_line</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>House/Flat No, Street Name</td>
                                     <td>123 Temple Street</td>
+                                </tr>
+                                <tr>
+                                    <td><code>landmark</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>Near landmark</td>
+                                    <td>Near City Mall</td>
+                                </tr>
+                                <tr>
+                                    <td><code>zone</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>Area/Zone</td>
+                                    <td>Zone A</td>
                                 </tr>
                                 <tr>
                                     <td><code>join_date</code></td>

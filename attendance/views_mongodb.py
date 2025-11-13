@@ -11,6 +11,7 @@ import csv
 import json
 
 from .mongodb_utils import MongoDBManager
+from .utils_photo import generate_initials_photo
 
 # Initialize MongoDB managers
 devotees_db = MongoDBManager('devotees')
@@ -65,15 +66,23 @@ def dashboard(request):
 @login_required
 def devotee_list(request):
     search_query = request.GET.get('search', '')
+    search_type = request.GET.get('search_type', 'id')
     page = int(request.GET.get('page', 1))
     per_page = 20
     
     query = {}
     if search_query:
-        query = {'$or': [
-            {'name': {'$regex': search_query, '$options': 'i'}},
-            {'contact_number': {'$regex': search_query}}
-        ]}
+        if search_type == 'id':
+            try:
+                query = {'devotee_id': int(search_query)}
+            except ValueError:
+                query = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
+        elif search_type == 'phone':
+            query = {'contact_number': {'$regex': search_query}}
+        elif search_type == 'name':
+            query = {'name': {'$regex': search_query, '$options': 'i'}}
+        elif search_type == 'type':
+            query = {'devotee_type': {'$regex': search_query, '$options': 'i'}}
     
     total_count = devotees_db.count(query)
     skip = (page - 1) * per_page
@@ -83,6 +92,8 @@ def devotee_list(request):
     for devotee in devotees_raw:
         devotee['id'] = str(devotee['_id'])
         devotee['get_sabha_type_display'] = devotee.get('sabha_type', '').title()
+        if not devotee.get('photo_url'):
+            devotee['photo_url'] = generate_initials_photo(devotee['name'])
         devotees.append(devotee)
     
     # Pagination info
@@ -91,15 +102,21 @@ def devotee_list(request):
     has_next = page < total_pages
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        devotees_data = [{
-            'id': str(d['_id']),
-            'name': d['name'],
-            'contact_number': d['contact_number'],
-            'sabha_type_display': d['sabha_type'].title(),
-            'age_group': d.get('age_group', 'N/A'),
-            'join_date': d['join_date'],
-            'photo_url': d.get('photo_url', '')
-        } for d in devotees_raw]
+        devotees_data = []
+        for d in devotees_raw:
+            photo_url = d.get('photo_url', '')
+            if not photo_url:
+                photo_url = generate_initials_photo(d['name'])
+            devotees_data.append({
+                'id': str(d['_id']),
+                'devotee_id': d.get('devotee_id', ''),
+                'name': d['name'],
+                'contact_number': d['contact_number'],
+                'sabha_type_display': d['sabha_type'].title(),
+                'devotee_type': d.get('devotee_type', ''),
+                'join_date': d['join_date'],
+                'photo_url': photo_url
+            })
         
         return JsonResponse({
             'devotees': devotees_data,
@@ -140,7 +157,17 @@ def devotee_add(request):
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
+        # Auto-generate devotee_id if not provided
+        devotee_id = request.POST.get('devotee_id', '').strip()
+        if not devotee_id:
+            # Generate ID: DT + year + sequential number
+            year = datetime.now().year
+            count = devotees_db.count() + 1
+            devotee_id = f"DT{year}{count:04d}"
+        
         devotee_data = {
+            'devotee_id': devotee_id,
+            'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
             'date_of_birth': request.POST.get('date_of_birth'),
@@ -214,6 +241,8 @@ def devotee_edit(request, pk):
         from .dropbox_utils import upload_devotee_photo
         
         update_data = {
+            'devotee_id': request.POST.get('devotee_id', devotee.get('devotee_id', '')),
+            'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
             'date_of_birth': request.POST.get('date_of_birth'),
@@ -305,21 +334,27 @@ def mark_attendance(request, sabha_id):
     sabha['get_sabha_type_display'] = sabha.get('sabha_type', '').title() + ' Sabha'
     
     search_query = request.GET.get('search', '')
+    search_type = request.GET.get('search_type', 'id')
     page = int(request.GET.get('page', 1))
     per_page = 30
     
     query = {'sabha_type': sabha['sabha_type']}
     
     if search_query:
-        query = {
-            '$and': [
-                {'sabha_type': sabha['sabha_type']},
-                {'$or': [
-                    {'name': {'$regex': search_query, '$options': 'i'}},
-                    {'contact_number': {'$regex': search_query}}
-                ]}
-            ]
-        }
+        search_condition = {}
+        if search_type == 'id':
+            try:
+                search_condition = {'devotee_id': int(search_query)}
+            except ValueError:
+                search_condition = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
+        elif search_type == 'phone':
+            search_condition = {'contact_number': {'$regex': search_query}}
+        elif search_type == 'name':
+            search_condition = {'name': {'$regex': search_query, '$options': 'i'}}
+        elif search_type == 'type':
+            search_condition = {'devotee_type': {'$regex': search_query, '$options': 'i'}}
+        
+        query = {'$and': [{'sabha_type': sabha['sabha_type']}, search_condition]}
     
     total_count = devotees_db.count(query)
     skip = (page - 1) * per_page
@@ -329,6 +364,8 @@ def mark_attendance(request, sabha_id):
     for devotee in devotees_raw:
         devotee['id'] = str(devotee['_id'])
         devotee['get_sabha_type_display'] = devotee.get('sabha_type', '').title()
+        if not devotee.get('photo_url'):
+            devotee['photo_url'] = generate_initials_photo(devotee['name'])
         devotees.append(devotee)
     
     # Pagination info
@@ -432,13 +469,20 @@ def mark_attendance(request, sabha_id):
             return iter(self.object_list)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        devotees_data = [{
-            'id': str(d['_id']),
-            'name': d['name'],
-            'contact_number': d['contact_number'],
-            'sabha_type_display': d['sabha_type'].title(),
-            'photo_url': d.get('photo_url', '')
-        } for d in devotees_raw]
+        devotees_data = []
+        for d in devotees_raw:
+            photo_url = d.get('photo_url', '')
+            if not photo_url:
+                photo_url = generate_initials_photo(d['name'])
+            devotees_data.append({
+                'id': str(d['_id']),
+                'devotee_id': d.get('devotee_id', ''),
+                'name': d['name'],
+                'contact_number': d['contact_number'],
+                'sabha_type_display': d['sabha_type'].title(),
+                'devotee_type': d.get('devotee_type', ''),
+                'photo_url': photo_url
+            })
         
         return JsonResponse({
             'devotees': devotees_data,
@@ -699,6 +743,8 @@ def upload_devotees(request):
                 for row in valid_rows:
                     if 'join_date' in row and hasattr(row['join_date'], 'isoformat'):
                         row['join_date'] = row['join_date'].isoformat()
+                    if 'date_of_birth' in row and hasattr(row['date_of_birth'], 'isoformat'):
+                        row['date_of_birth'] = row['date_of_birth'].isoformat()
                 
                 request.session['upload_data'] = valid_rows
                 request.session['total_records'] = len(valid_rows)

@@ -15,7 +15,19 @@
 </div>
 
 <div class="mb-3">
-    <input type="text" id="searchInput" class="form-control" placeholder="Search devotees by name or phone..." value="{{ search_query }}">
+    <div class="row">
+        <div class="col-md-3">
+            <select id="searchType" class="form-select">
+                <option value="id" {% if request.GET.search_type == 'id' or not request.GET.search_type %}selected{% endif %}>Search by ID</option>
+                <option value="name" {% if request.GET.search_type == 'name' %}selected{% endif %}>Search by Name</option>
+                <option value="phone" {% if request.GET.search_type == 'phone' %}selected{% endif %}>Search by Phone</option>
+                <option value="type" {% if request.GET.search_type == 'type' %}selected{% endif %}>Search by Type</option>
+            </select>
+        </div>
+        <div class="col-md-9">
+            <input type="text" id="searchInput" class="form-control" placeholder="Enter search term..." value="{{ search_query }}">
+        </div>
+    </div>
     <div id="searchLoading" class="text-center mt-2" style="display: none;">
         <div class="spinner-border spinner-border-sm" role="status"></div>
         <span class="ms-2">Searching...</span>
@@ -68,8 +80,8 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-person-badge text-primary me-2"></i>
                                         <div>
-                                            <small class="text-muted d-block">Age</small>
-                                            <small class="fw-medium">{{ devotee.age_group|default:"N/A" }}</small>
+                                            <small class="text-muted d-block">Type</small>
+                                            <small class="fw-medium">{{ devotee.devotee_type|default:"N/A"|title }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -108,10 +120,11 @@
                         <thead>
                             <tr>
                                 <th>Photo</th>
+                                <th>ID</th>
                                 <th>Name</th>
                                 <th>Contact</th>
                                 <th>Sabha Type</th>
-                                <th>Age Group</th>
+                                <th>Type</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -133,10 +146,11 @@
                                             </div>
                                         {% endif %}
                                     </td>
+                                    <td>{{ devotee.devotee_id }}</td>
                                     <td>{{ devotee.name }}</td>
                                     <td>{{ devotee.contact_number }}</td>
                                     <td>{{ devotee.get_sabha_type_display }}</td>
-                                    <td>{{ devotee.age_group }}</td>
+                                    <td>{{ devotee.devotee_type|title }}</td>
                                     <td>
                                         <div class="d-flex gap-1 align-items-center">
                                             <a href="{% url 'devotee_detail' devotee.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 32px;">
@@ -196,8 +210,9 @@
 
 <script>
 let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value;
+function performSearch() {
+    const searchTerm = document.getElementById('searchInput').value;
+    const searchType = document.getElementById('searchType').value;
     const loading = document.getElementById('searchLoading');
     
     clearTimeout(searchTimeout);
@@ -207,8 +222,10 @@ document.getElementById('searchInput').addEventListener('input', function() {
         const url = new URL(window.location);
         if (searchTerm) {
             url.searchParams.set('search', searchTerm);
+            url.searchParams.set('search_type', searchType);
         } else {
             url.searchParams.delete('search');
+            url.searchParams.delete('search_type');
         }
         url.searchParams.delete('page');
         
@@ -227,7 +244,10 @@ document.getElementById('searchInput').addEventListener('input', function() {
             loading.style.display = 'none';
         });
     }, 300);
-});
+}
+
+document.getElementById('searchInput').addEventListener('input', performSearch);
+document.getElementById('searchType').addEventListener('change', performSearch);
 
 
 function updateDevoteeList(data) {
@@ -271,10 +291,11 @@ function updateDevoteeList(data) {
                     `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-person text-muted"></i></div>`
                 }
             </td>
+            <td>${devotee.devotee_id}</td>
             <td>${devotee.name}</td>
             <td>${devotee.contact_number}</td>
             <td>${devotee.sabha_type_display}</td>
-            <td>${devotee.age_group}</td>
+            <td>${devotee.devotee_type ? devotee.devotee_type.charAt(0).toUpperCase() + devotee.devotee_type.slice(1) : 'N/A'}</td>
             <td>
                 <div class="d-flex gap-2">
                     <a href="/devotees/${devotee.id}/" class="btn btn-sm btn-outline-primary" style="width: 40px; height: 32px;"><i class="bi bi-eye"></i></a>

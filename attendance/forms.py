@@ -13,8 +13,10 @@ class DevoteeForm(forms.ModelForm):
     
     class Meta:
         model = Devotee
-        fields = ['name', 'contact_number', 'date_of_birth', 'gender', 'age', 'sabha_type', 'address_line', 'landmark', 'zone', 'join_date']
+        fields = ['devotee_id', 'devotee_type', 'name', 'contact_number', 'date_of_birth', 'gender', 'age', 'sabha_type', 'address_line', 'landmark', 'zone', 'join_date']
         widgets = {
+            'devotee_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if empty'}),
+            'devotee_type': forms.Select(attrs={'class': 'form-control'}),
             'join_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),

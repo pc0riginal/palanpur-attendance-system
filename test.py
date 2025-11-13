@@ -1,14 +1,15 @@
 import pandas as pd
 import random
 from faker import Faker
-from datetime import datetime
+from datetime import datetime, date
 
 # Initialize Faker
 fake = Faker("en_IN")
 
 # Define categories
-sabha_types = ["Bal", "Yuvak", "Mahila", "Sanyukt"]
-age_groups = ["5-12", "13-25", "26-35", "36-50", "51-65", "65+"]
+sabha_types = ["bal", "yuvak", "mahila", "sanyukt"]
+devotee_types = ["haribhakt", "gunbhavi", "karyakar"]
+genders = ["male", "female"]
 
 records = []
 
@@ -18,24 +19,38 @@ def generate_phone():
     remaining = "".join([str(random.randint(0, 9)) for _ in range(9)])
     return start_digit + remaining
 
+def calculate_age(birth_date):
+    """Calculate age from birth date."""
+    today = date.today()
+    return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+
 # Generate 500 random devotee records
-for _ in range(500):
+for i in range(1, 501):
     name = fake.name()
     contact_number = generate_phone()
     sabha_type = random.choice(sabha_types)
-    photo_url = f"https://lh3.googleusercontent.com/pw/{fake.sha1()}"
-    age_group = random.choice(age_groups)
-    address = fake.city()
-    join_date = fake.date_between(start_date="-2y", end_date="today").strftime("%d/%m/%Y")
+    devotee_type = random.choice(devotee_types)
+    gender = random.choice(genders)
+    date_of_birth = fake.date_between(start_date="-70y", end_date="-5y")
+    age = calculate_age(date_of_birth)
+    address_line = fake.street_address()
+    landmark = f"Near {fake.company()}"
+    zone = f"Zone {random.choice(['A', 'B', 'C', 'D'])}"
+    join_date = fake.date_between(start_date="-2y", end_date="today")
     
     records.append({
+        "devotee_id": i,
         "name": name,
         "contact_number": contact_number,
         "sabha_type": sabha_type,
-        "photo_url": photo_url,
-        "age_group": age_group,
-        "address": address,
-        "join_date": join_date
+        "devotee_type": devotee_type,
+        "date_of_birth": date_of_birth.strftime("%Y-%m-%d"),
+        "gender": gender,
+        "age": age,
+        "address_line": address_line,
+        "landmark": landmark,
+        "zone": zone,
+        "join_date": join_date.strftime("%Y-%m-%d")
     })
 
 # Create DataFrame
@@ -44,4 +59,4 @@ df = pd.DataFrame(records)
 # Save to Excel
 df.to_excel("devotee_data.xlsx", index=False)
 
-print("✅ Excel file 'devotee_data.xlsx' created successfully with 500 records and valid 10-digit phone numbers.")
+print("✅ Excel file 'devotee_data.xlsx' created successfully with 500 records and new devotee structure.")

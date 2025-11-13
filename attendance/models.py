@@ -9,13 +9,30 @@ class Devotee(models.Model):
         ('sanyukt', 'Sanyukt Sabha'),
     ]
     
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+    ]
+    
+    DEVOTEE_TYPE_CHOICES = [
+        ('haribhakt', 'Haribhakt'),
+        ('gunbhavi', 'Gunbhavi'),
+        ('karyakar', 'Karyakar'),
+    ]
+    
+    devotee_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    devotee_type = models.CharField(max_length=20, choices=DEVOTEE_TYPE_CHOICES, default='haribhakt')
     name = models.CharField(max_length=100)
     contact_number = models.CharField(max_length=15)
-    age_group = models.CharField(max_length=20)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
+    age = models.IntegerField(null=True, blank=True)
     sabha_type = models.CharField(max_length=20, choices=SABHA_CHOICES)
-    address = models.TextField()
+    address_line = models.CharField(max_length=200, blank=True)
+    landmark = models.CharField(max_length=100, blank=True)
+    zone = models.CharField(max_length=50, blank=True)
     join_date = models.DateField()
-    photo_url = models.URLField(max_length=500, blank=True, null=True, help_text='Google Drive or image URL')
+    photo_url = models.URLField(max_length=500, blank=True, null=True, help_text='Photo URL')
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     
     def __str__(self):

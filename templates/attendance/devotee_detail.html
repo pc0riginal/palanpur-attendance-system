@@ -3,23 +3,13 @@
 {% block title %}{{ devotee.name }} - Temple Attendance{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-bg py-4 mb-4">
-    <div class="container" data-aos="fade-up">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <a href="{% url 'devotee_list' %}" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Devotees
-                </a>
-            </div>
-            <div class="col">
-                <h2 class="fw-bold mb-0">Devotee Details</h2>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Devotee Details</h2>
+        <a href="{% url 'devotee_list' %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Devotees
+        </a>
+    </div>
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Main Profile Card -->
@@ -46,6 +36,26 @@
                             <h3 class="fw-bold mb-3">{{ devotee.name }}</h3>
                             
                             <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-hash text-primary me-3"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Devotee ID</small>
+                                            <span class="fw-medium">{{ devotee.devotee_id|default:"Not specified" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-sm-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-person-check text-primary me-3"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Devotee Type</small>
+                                            <span class="fw-medium">{{ devotee.devotee_type|title|default:"Not specified" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="col-sm-6">
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="bi bi-telephone text-primary me-3"></i>

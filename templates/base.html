@@ -17,6 +17,44 @@
             --coral-red: #EF4444;
             --amber: #F59E0B;
         }
+        
+        [data-theme="dark"] {
+            --white-lilac: #1a1a1a;
+            --dark-blue: #ffffff;
+        }
+        
+        [data-theme="dark"] body {
+            background-color: #121212;
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .card {
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .navbar {
+            background: rgba(30, 30, 30, 0.95) !important;
+        }
+        
+        [data-theme="dark"] .bottom-tab-bar {
+            background: #1e1e1e;
+            border-top-color: #333;
+        }
+        
+        [data-theme="dark"] .form-control, [data-theme="dark"] .form-select {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .table {
+            color: #ffffff;
+        }
+        
+        [data-theme="dark"] .table thead th {
+            background-color: rgba(108, 99, 255, 0.2);
+        }
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--white-lilac); color: var(--dark-blue); line-height: 1.6; font-size: 16px; }
         
@@ -306,6 +344,7 @@
                     <a class="nav-link" href="{% url 'sabha_list' %}"><i class="bi bi-calendar-event"></i> Sabhas</a>
                     <a class="nav-link" href="{% url 'upload_devotees' %}"><i class="bi bi-cloud-upload"></i> Upload</a>
                     <a class="nav-link" href="{% url 'attendance_report' %}"><i class="bi bi-graph-up"></i> Reports</a>
+                    <button class="nav-link btn btn-link" onclick="toggleDarkMode()" style="border: none; background: none;"><i class="bi bi-moon-fill" id="theme-icon"></i> <span id="theme-text">Dark</span></button>
                     <a class="nav-link" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
                 </div>
             </div>
@@ -335,7 +374,7 @@
                 <i class="bi bi-speedometer2"></i>
                 <span>Home</span>
             </a>
-            <a href="{% url 'devotee_list' %}" class="bottom-tab{% if 'devotee' in request.resolver_match.url_name %} active{% endif %}">
+            <a href="{% url 'devotee_list' %}" class="bottom-tab{% if 'devotee' in request.resolver_match.url_name and 'upload' not in request.resolver_match.url_name %} active{% endif %}">
                 <i class="bi bi-people"></i>
                 <span>Devotees</span>
             </a>
@@ -358,5 +397,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>AOS.init({duration: 800, once: true});</script>
+    
+    <script>
+    function toggleDarkMode() {
+        const html = document.documentElement;
+        const icon = document.getElementById('theme-icon');
+        const text = document.getElementById('theme-text');
+        
+        if (html.getAttribute('data-theme') === 'dark') {
+            html.removeAttribute('data-theme');
+            icon.className = 'bi bi-moon-fill';
+            text.textContent = 'Dark';
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            icon.className = 'bi bi-sun-fill';
+            text.textContent = 'Light';
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-icon').className = 'bi bi-sun-fill';
+        document.getElementById('theme-text').textContent = 'Light';
+    }
+    </script>
 </body>
 </html>

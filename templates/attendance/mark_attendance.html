@@ -32,7 +32,19 @@
 </div>
 
 <div class="mb-3">
-    <input type="text" id="searchInput" class="form-control" placeholder="Search devotees by name or phone..." value="{{ search_query }}">
+    <div class="row">
+        <div class="col-md-3">
+            <select id="searchType" class="form-select">
+                <option value="id" {% if request.GET.search_type == 'id' or not request.GET.search_type %}selected{% endif %}>Search by ID</option>
+                <option value="name" {% if request.GET.search_type == 'name' %}selected{% endif %}>Search by Name</option>
+                <option value="phone" {% if request.GET.search_type == 'phone' %}selected{% endif %}>Search by Phone</option>
+                <option value="type" {% if request.GET.search_type == 'type' %}selected{% endif %}>Search by Type</option>
+            </select>
+        </div>
+        <div class="col-md-9">
+            <input type="text" id="searchInput" class="form-control" placeholder="Enter search term..." value="{{ search_query }}">
+        </div>
+    </div>
     <div id="searchLoading" class="text-center mt-2" style="display: none;">
         <div class="spinner-border spinner-border-sm" role="status"></div>
         <span class="ms-2">Searching...</span>
@@ -67,8 +79,8 @@
                                     </div>
                                     <div>
                                         <h6 class="fw-semibold mb-1">{{ devotee.name }}</h6>
-                                        <small class="text-muted d-block">{{ devotee.contact_number }}</small>
-                                        <small class="text-muted">{{ devotee.get_sabha_type_display }}</small>
+                                        <small class="text-muted d-block">ID: {{ devotee.devotee_id }} | {{ devotee.contact_number }}</small>
+                                        <small class="text-muted">{{ devotee.get_sabha_type_display }} | {{ devotee.devotee_type|title }}</small>
                                     </div>
                                 </div>
                                 
@@ -106,6 +118,7 @@
                             <thead>
                                 <tr>
                                     <th>Photo</th>
+                                    <th>ID</th>
                                     <th>Devotee Name</th>
                                     <th>Contact</th>
                                     <th>Status</th>
@@ -130,6 +143,7 @@
                                                 </div>
                                             {% endif %}
                                         </td>
+                                        <td>{{ devotee.devotee_id }}</td>
                                         <td>{{ devotee.name }}</td>
                                         <td>{{ devotee.contact_number }}</td>
                                         <td>
@@ -315,8 +329,9 @@ function showSaveStatus(message, type) {
 
 // Server-side search functionality
 let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value;
+function performAttendanceSearch() {
+    const searchTerm = document.getElementById('searchInput').value;
+    const searchType = document.getElementById('searchType').value;
     const loading = document.getElementById('searchLoading');
     
     clearTimeout(searchTimeout);
@@ -326,8 +341,10 @@ document.getElementById('searchInput').addEventListener('input', function() {
         const url = new URL(window.location);
         if (searchTerm) {
             url.searchParams.set('search', searchTerm);
+            url.searchParams.set('search_type', searchType);
         } else {
             url.searchParams.delete('search');
+            url.searchParams.delete('search_type');
         }
         url.searchParams.delete('page');
         
@@ -346,7 +363,10 @@ document.getElementById('searchInput').addEventListener('input', function() {
             loading.style.display = 'none';
         });
     }, 300);
-});
+}
+
+document.getElementById('searchInput').addEventListener('input', performAttendanceSearch);
+document.getElementById('searchType').addEventListener('change', performAttendanceSearch);
 
 function updateAttendanceList(data) {
     const mobileContainer = document.querySelector('.d-block.d-lg-none');
@@ -369,8 +389,8 @@ function updateAttendanceList(data) {
                     </div>
                     <div>
                         <h6 class="fw-semibold mb-1">${devotee.name}</h6>
-                        <small class="text-muted d-block">${devotee.contact_number}</small>
-                        <small class="text-muted">${devotee.sabha_type_display}</small>
+                        <small class="text-muted d-block">ID: ${devotee.devotee_id} | ${devotee.contact_number}</small>
+                        <small class="text-muted">${devotee.sabha_type_display} | ${devotee.devotee_type ? devotee.devotee_type.charAt(0).toUpperCase() + devotee.devotee_type.slice(1) : 'N/A'}</small>
                     </div>
                 </div>
                 <div class="btn-group w-100 mb-3" role="group">

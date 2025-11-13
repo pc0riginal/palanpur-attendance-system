@@ -52,8 +52,8 @@ def process_excel_file(file_path, sabha_type_filter=None):
         df = pd.read_excel(file_path)
         
         # Expected columns
-        required_columns = ['name', 'contact_number', 'sabha_type', 'photo_url']
-        optional_columns = ['age_group', 'address', 'join_date']
+        required_columns = ['devotee_id', 'name', 'contact_number', 'sabha_type', 'devotee_type', 'date_of_birth', 'gender']
+        optional_columns = ['age', 'address_line', 'landmark', 'zone', 'join_date']
         
         # Check if required columns exist
         missing_columns = [col for col in required_columns if col not in df.columns]
@@ -66,24 +66,63 @@ def process_excel_file(file_path, sabha_type_filter=None):
         for index, row in df.iterrows():
             row_errors = []
             
-            # Validate name
+            # Validate devotee_id (mandatory integer)
+            if not row['devotee_id'] or pd.isna(row['devotee_id']):
+                row_errors.append("Devotee ID is required")
+            else:
+                try:
+                    devotee_id = int(row['devotee_id'])
+                    if devotee_id <= 0:
+                        row_errors.append("Devotee ID must be a positive integer")
+                except (ValueError, TypeError):
+                    row_errors.append("Devotee ID must be an integer number")
+            
+            # Validate name (mandatory)
             if not row['name'] or pd.isna(row['name']) or str(row['name']).strip() == '':
                 row_errors.append("Name is required")
             
-            # Validate phone
+            # Validate phone (mandatory)
             phone_valid, phone_error = validate_phone(row['contact_number'])
             if not phone_valid:
                 row_errors.append(phone_error)
             
-            # Validate sabha type
+            # Validate sabha type (mandatory)
             sabha_valid, sabha_error = validate_sabha_type(row['sabha_type'])
             if not sabha_valid:
                 row_errors.append(sabha_error)
             
-            # Validate photo URL
-            url_valid, url_error = validate_url(row['photo_url'])
-            if not url_valid:
-                row_errors.append(url_error)
+            # Validate devotee_type (mandatory)
+            if not row['devotee_type'] or pd.isna(row['devotee_type']):
+                row_errors.append("Devotee type is required")
+            else:
+                devotee_type_str = str(row['devotee_type']).lower().strip()
+                valid_types = [choice[0] for choice in Devotee.DEVOTEE_TYPE_CHOICES]
+                if devotee_type_str not in valid_types:
+                    row_errors.append(f"Invalid devotee type. Must be one of: {', '.join(valid_types)}")
+            
+            # Validate date_of_birth (mandatory)
+            if not row['date_of_birth'] or pd.isna(row['date_of_birth']):
+                row_errors.append("Date of birth is required")
+            else:
+                try:
+                    if isinstance(row['date_of_birth'], str):
+                        dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
+                    else:
+                        dob = row['date_of_birth'].date()
+                    
+                    if dob > datetime.now().date():
+                        row_errors.append("Date of birth cannot be in the future")
+                except:
+                    row_errors.append("Invalid date of birth format. Use YYYY-MM-DD")
+            
+            # Validate gender (mandatory)
+            if not row['gender'] or pd.isna(row['gender']):
+                row_errors.append("Gender is required")
+            else:
+                gender_str = str(row['gender']).lower().strip()
+                valid_genders = [choice[0] for choice in Devotee.GENDER_CHOICES]
+                if gender_str not in valid_genders:
+                    row_errors.append(f"Invalid gender. Must be one of: {', '.join(valid_genders)}")
             
             # Apply sabha type filter if specified
             if sabha_type_filter and str(row['sabha_type']).lower() != sabha_type_filter:
@@ -96,14 +135,36 @@ def process_excel_file(file_path, sabha_type_filter=None):
                     'data': row.to_dict()
                 })
             else:
+                # Calculate age from date_of_birth
+                age = 0
+                dob = None
+                try:
+                    if isinstance(row['date_of_birth'], str):
+                        dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
+                    else:
+                        dob = row['date_of_birth'].date()
+                    
+                    today = datetime.now().date()
+                    age = today.year - dob.year
+                    if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+                        age -= 1
+                except:
+                    pass
+                
                 # Prepare valid row data
                 valid_row = {
+                    'devotee_id': int(row['devotee_id']),
                     'name': str(row['name']).strip(),
                     'contact_number': str(row['contact_number']).strip(),
                     'sabha_type': str(row['sabha_type']).lower().strip(),
-                    'photo_url': str(row['photo_url']).strip(),
-                    'age_group': str(row.get('age_group', '')).strip() if not pd.isna(row.get('age_group')) else '',
-                    'address': str(row.get('address', '')).strip() if not pd.isna(row.get('address')) else '',
+                    'devotee_type': str(row['devotee_type']).lower().strip(),
+                    'date_of_birth': dob,
+                    'gender': str(row['gender']).lower().strip(),
+                    'age': int(row.get('age', age)) if not pd.isna(row.get('age')) and str(row.get('age')).isdigit() else age,
+                    'address_line': str(row.get('address_line', '')).strip() if not pd.isna(row.get('address_line')) else '',
+                    'landmark': str(row.get('landmark', '')).strip() if not pd.isna(row.get('landmark')) else '',
+                    'zone': str(row.get('zone', '')).strip() if not pd.isna(row.get('zone')) else '',
+                    'photo_url': '',
                     'join_date': datetime.now().date()
                 }
                 
