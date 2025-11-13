@@ -73,9 +73,13 @@ def devotee_list(request):
     query = {}
     if search_query:
         if search_type == 'id':
-            try:
-                query = {'devotee_id': int(search_query)}
-            except ValueError:
+            # Search both as integer and string to handle mixed data types
+            if search_query.isdigit():
+                query = {'$or': [
+                    {'devotee_id': int(search_query)},
+                    {'devotee_id': str(search_query)}
+                ]}
+            else:
                 query = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
         elif search_type == 'phone':
             query = {'contact_number': {'$regex': search_query}}
@@ -149,6 +153,7 @@ def devotee_list(request):
     return render(request, 'attendance/devotee_list.html', {
         'page_obj': page_obj,
         'search_query': search_query,
+        'search_type': search_type,
         'total_count': total_count
     })
 
@@ -164,6 +169,10 @@ def devotee_add(request):
             year = datetime.now().year
             count = devotees_db.count() + 1
             devotee_id = f"DT{year}{count:04d}"
+        
+        # Ensure devotee_id is stored as integer if it's numeric
+        if str(devotee_id).isdigit():
+            devotee_id = int(devotee_id)
         
         devotee_data = {
             'devotee_id': devotee_id,
@@ -240,8 +249,13 @@ def devotee_edit(request, pk):
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
+        devotee_id_input = request.POST.get('devotee_id', devotee.get('devotee_id', ''))
+        # Ensure devotee_id is stored as integer if it's numeric
+        if str(devotee_id_input).isdigit():
+            devotee_id_input = int(devotee_id_input)
+        
         update_data = {
-            'devotee_id': request.POST.get('devotee_id', devotee.get('devotee_id', '')),
+            'devotee_id': devotee_id_input,
             'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
@@ -343,9 +357,13 @@ def mark_attendance(request, sabha_id):
     if search_query:
         search_condition = {}
         if search_type == 'id':
-            try:
-                search_condition = {'devotee_id': int(search_query)}
-            except ValueError:
+            # Search both as integer and string to handle mixed data types
+            if search_query.isdigit():
+                search_condition = {'$or': [
+                    {'devotee_id': int(search_query)},
+                    {'devotee_id': str(search_query)}
+                ]}
+            else:
                 search_condition = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
         elif search_type == 'phone':
             search_condition = {'contact_number': {'$regex': search_query}}

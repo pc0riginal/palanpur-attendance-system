@@ -414,6 +414,7 @@ function updateAttendanceList(data) {
                     `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-person text-muted"></i></div>`
                 }
             </td>
+            <td>${devotee.devotee_id}</td>
             <td>${devotee.name}</td>
             <td>${devotee.contact_number}</td>
             <td>
@@ -476,8 +477,12 @@ function updateAttendancePagination(data) {
 
 function loadAttendancePage(page) {
     const searchQuery = document.getElementById('searchInput').value;
+    const searchType = document.getElementById('searchType').value;
     const sabhaId = window.location.pathname.split('/')[2];
-    const url = `/sabhas/${sabhaId}/attendance/?page=${page}${searchQuery ? '&search=' + searchQuery : ''}`;
+    let url = `/sabhas/${sabhaId}/attendance/?page=${page}`;
+    if (searchQuery) {
+        url += `&search=${searchQuery}&search_type=${searchType}`;
+    }
     
     fetch(url, {
         headers: {
