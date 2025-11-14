@@ -2,7 +2,6 @@ from django.conf import settings
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
-from decouple import config
 
 _mongo_client = None
 _mongodb = None
@@ -13,20 +12,17 @@ def get_mongodb():
     
     if _mongodb is None:
         try:
-            mongodb_name = config('MONGODB_NAME', default=settings.MONGODB_NAME)
-            print(f"Connecting to MongoDB: {mongodb_name}")
+            print(f"Connecting to MongoDB: {settings.MONGODB_NAME}")
             # Add connection timeout and retry settings
-            mongodb_uri = config('MONGODB_URI', default=settings.MONGODB_URI)
-            mongodb_name = config('MONGODB_NAME', default=settings.MONGODB_NAME)
             _mongo_client = MongoClient(
-                mongodb_uri,
+                settings.MONGODB_URI,
                 serverSelectionTimeoutMS=5000,
                 socketTimeoutMS=20000,
                 connectTimeoutMS=20000,
                 maxPoolSize=10,
                 retryWrites=True
             )
-            _mongodb = _mongo_client[mongodb_name]
+            _mongodb = _mongo_client[settings.MONGODB_NAME]
             # Test connection
             server_info = _mongo_client.server_info()
             print(f"MongoDB connected successfully. Server version: {server_info.get('version')}")
