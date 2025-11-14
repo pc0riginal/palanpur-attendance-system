@@ -342,11 +342,12 @@ function performAttendanceSearch() {
         if (searchTerm) {
             url.searchParams.set('search', searchTerm);
             url.searchParams.set('search_type', searchType);
+            url.searchParams.delete('page');
         } else {
             url.searchParams.delete('search');
             url.searchParams.delete('search_type');
+            // Keep current page when clearing search
         }
-        url.searchParams.delete('page');
         
         fetch(url, {
             headers: {
