@@ -35,7 +35,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Name</label>
-                                <input type="text" name="name" class="form-control" value="{{ devotee.name|default:'' }}" required minlength="2" maxlength="100" pattern="[A-Za-z\s]+" title="Name should only contain letters and spaces">
+                                <input type="text" name="name" class="form-control" value="{{ devotee.name|default:'' }}" required minlength="2" maxlength="100">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -85,19 +85,19 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Address Line</label>
-                        <input type="text" name="address_line" class="form-control" value="{{ devotee.address_line|default:'' }}" placeholder="House/Flat No, Street Name">
+                        <input type="text" name="address_line" class="form-control" value="{{ devotee.address_line|default:'' }}" placeholder="House/Flat No, Street Name" accept-charset="UTF-8">
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Landmark</label>
-                                <input type="text" name="landmark" class="form-control" value="{{ devotee.landmark|default:'' }}" placeholder="Near landmark">
+                                <input type="text" name="landmark" class="form-control" value="{{ devotee.landmark|default:'' }}" placeholder="Near landmark" accept-charset="UTF-8">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Zone</label>
-                                <input type="text" name="zone" class="form-control" value="{{ devotee.zone|default:'' }}" placeholder="Area/Zone">
+                                <input type="text" name="zone" class="form-control" value="{{ devotee.zone|default:'' }}" placeholder="Area/Zone" accept-charset="UTF-8">
                             </div>
                         </div>
                     </div>
