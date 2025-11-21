@@ -184,19 +184,41 @@ def process_excel_file(file_path, sabha_type_filter=None):
         return None, f"Error processing file: {str(e)}"
 
 def save_devotees(valid_rows):
-    """Save valid devotee data to database"""
+    """Save valid devotee data to database using bulk operations"""
+    from django.db import transaction
+    
     created_count = 0
     updated_count = 0
     
+    # Get existing contact numbers
+    contact_numbers = [row['contact_number'] for row in valid_rows]
+    existing_devotees = {d.contact_number: d for d in Devotee.objects.filter(contact_number__in=contact_numbers)}
+    
+    to_create = []
+    to_update = []
+    
     for row_data in valid_rows:
-        devotee, created = Devotee.objects.update_or_create(
-            contact_number=row_data['contact_number'],
-            defaults=row_data
-        )
-        
-        if created:
-            created_count += 1
-        else:
+        contact = row_data['contact_number']
+        if contact in existing_devotees:
+            # Update existing
+            devotee = existing_devotees[contact]
+            for key, value in row_data.items():
+                setattr(devotee, key, value)
+            to_update.append(devotee)
             updated_count += 1
+        else:
+            # Create new
+            to_create.append(Devotee(**row_data))
+            created_count += 1
+    
+    # Bulk operations
+    with transaction.atomic():
+        if to_create:
+            Devotee.objects.bulk_create(to_create, batch_size=100)
+        if to_update:
+            Devotee.objects.bulk_update(to_update, 
+                ['name', 'devotee_id', 'devotee_type', 'date_of_birth', 'gender', 'age', 
+                 'sabha_type', 'address_line', 'landmark', 'zone', 'join_date'], 
+                batch_size=100)
     
     return created_count, updated_count

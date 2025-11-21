@@ -43,7 +43,7 @@ csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',')]
 else:
-    CSRF_TRUSTED_ORIGINS = ['https://*.koyeb.app', 'http://*.koyeb.app','*']
+    CSRF_TRUSTED_ORIGINS = ['https://*.koyeb.app', 'http://*.koyeb.app']
 
 print(f"Production settings loaded:")
 print(f"  - Database: PostgreSQL (Aiven)")

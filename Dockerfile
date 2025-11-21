@@ -13,4 +13,4 @@ ENV DEBUG=False
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:8000 --env DJANGO_SETTINGS_MODULE=production_settings temple_attendance.wsgi:application"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:8000 --timeout 120 --workers 2 --env DJANGO_SETTINGS_MODULE=production_settings temple_attendance.wsgi:application"]
