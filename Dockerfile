@@ -13,4 +13,4 @@ ENV DEBUG=False
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && python create_admin.py && gunicorn --bind 0.0.0.0:8000 temple_attendance.wsgi:application"]
+CMD ["sh", "-c", "python manage.py migrate --settings=production_settings && gunicorn --bind 0.0.0.0:8000 --env DJANGO_SETTINGS_MODULE=production_settings temple_attendance.wsgi:application"]

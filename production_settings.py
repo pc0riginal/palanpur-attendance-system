@@ -19,11 +19,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'koyebdb',
-        'USER': 'koyeb-adm',
-        'PASSWORD': 'npg_U2fgu9DxzvNW',
-        'HOST': 'ep-wild-salad-a2zawwsl.eu-central-1.pg.koyeb.app',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'defaultdb'),
+        'USER': os.environ.get('DB_USER', 'avnadmin'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'REDACTED'),
+        'HOST': os.environ.get('DB_HOST', 'pg-363fbcb5-bapspalanapurmandir-becb.j.aivencloud.com'),
+        'PORT': os.environ.get('DB_PORT', '24821'),
         'OPTIONS': {
             'sslmode': 'require',
         },
@@ -42,6 +42,6 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else []
 
 print(f"Production settings loaded:")
-print(f"  - Database: PostgreSQL (Koyeb)")
+print(f"  - Database: PostgreSQL (Aiven)")
 print(f"  - Allowed Hosts: {ALLOWED_HOSTS}")
 print(f"  - Debug: {DEBUG}")
