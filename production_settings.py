@@ -19,11 +19,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'defaultdb'),
-        'USER': os.environ.get('DB_USER', 'avnadmin'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'REDACTED'),
-        'HOST': os.environ.get('DB_HOST', 'pg-363fbcb5-bapspalanapurmandir-becb.j.aivencloud.com'),
-        'PORT': os.environ.get('DB_PORT', '24821'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
         'OPTIONS': {
             'sslmode': 'require',
         },

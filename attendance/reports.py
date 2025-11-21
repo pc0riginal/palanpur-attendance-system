@@ -11,7 +11,6 @@ import base64
 from .models import Devotee, Sabha, Attendance
 import pandas as pd
 from collections import defaultdict
-from bson import ObjectId
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
