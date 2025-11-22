@@ -15,17 +15,19 @@ SECURE_HSTS_PRELOAD = True
 # Static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# PostgreSQL Database for all models and data
+# Database configuration
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'ENGINE': 'mssql',
+        'NAME': 'attendanceDb',
+        'USER': 'baps',
+        'PASSWORD': 'Pramukh@71221',
+        'HOST': 'pctest101.database.windows.net',
+        'PORT': '1433',
         'OPTIONS': {
-            'sslmode': 'require',
+            'driver': 'ODBC Driver 18 for SQL Server',
+            'host_is_server': True,
+            'extra_params': 'TrustServerCertificate=yes',
         },
     }
 }
