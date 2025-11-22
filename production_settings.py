@@ -16,8 +16,19 @@ SECURE_HSTS_PRELOAD = True
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Database configuration
-DATABASES = {
-    'default': {
+db_configs = {
+    'postgresql': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('PG_DB_NAME', 'defaultdb'),
+        'USER': os.environ.get('PG_DB_USER', 'avnadmin'),
+        'PASSWORD': os.environ.get('PG_DB_PASSWORD', ''),
+        'HOST': os.environ.get('PG_DB_HOST', 'pg-363fbcb5-bapspalanapurmandir-becb.j.aivencloud.com'),
+        'PORT': os.environ.get('PG_DB_PORT', '24821'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    },
+    'sqlserver': {
         'ENGINE': 'mssql',
         'NAME': 'attendanceDb',
         'USER': 'baps',
@@ -30,6 +41,12 @@ DATABASES = {
             'extra_params': 'TrustServerCertificate=yes',
         },
     }
+}
+
+# Choose database based on USE_DB environment variable (default: postgresql)
+selected_db = os.environ.get('USE_DB', 'postgresql').lower()
+DATABASES = {
+    'default': db_configs.get(selected_db, db_configs['postgresql'])
 }
 
 # Use Django's built-in authentication
@@ -48,6 +65,6 @@ else:
     CSRF_TRUSTED_ORIGINS = ['https://*.koyeb.app', 'http://*.koyeb.app']
 
 print(f"Production settings loaded:")
-print(f"  - Database: PostgreSQL (Aiven)")
+print(f"  - Database: {selected_db} ({DATABASES['default']['ENGINE']})")
 print(f"  - Allowed Hosts: {ALLOWED_HOSTS}")
 print(f"  - Debug: {DEBUG}")
